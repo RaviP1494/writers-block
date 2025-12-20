@@ -11,8 +11,8 @@ function App() {
 	const [activeStreamId, setActiveStreamId] = createSignal('1');
 
 	// TUNING CONTROLS
-	const [delayMs, setDelayMs] = createSignal(1000); // Default: 1.0s to cut
-	const [paraMs, setParaMs] = createSignal(5000);   // Default: 5.0s to paragraph
+	const [delayMs, setDelayMs] = createSignal(1500); // Default: 1.0s to cut
+	const [paraMs, setParaMs] = createSignal(10000);   // Default: 5.0s to paragraph
 
 	// --- ACTIONS ---
 
@@ -82,7 +82,7 @@ function App() {
 		<div class="min-h-screen bg-[#111] text-gray-300 font-mono flex flex-col items-center py-12 gap-8">
 
 			{/* 1. THE BLOCK & CONTROLS */}
-			<div class="fixed top-8 z-10 w-[48ch] bg-[#1a1a1a]/95 backdrop-blur border border-gray-700 p-6 rounded shadow-2xl transition-all">
+			<div class="fixed top-8 z-10 w-[28ch] bg-[#1a1a1a]/95 backdrop-blur border border-gray-700 p-6 rounded shadow-2xl transition-all">
 
 				{/* The Engine */}
 				<Block
@@ -91,40 +91,65 @@ function App() {
 					onSpurt={handleNewSpurt}
 				/>
 
-				{/* The Tuning Dashboard */}
-				<div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-800 text-xs">
+{/* The Tuning Dashboard (Stepper Version) */}
+        <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-800/50 text-xs select-none">
+            
+            {/* Cut Delay Control */}
+            <div class="flex flex-col items-center gap-3 group">
+              <label class="text-blue-500 font-bold uppercase tracking-wider group-hover:text-gray-400 transition-colors">
+                Cut
+              </label>
+              <div class="flex items-center bg-gray-900 rounded border border-gray-800 group-hover:border-gray-600 transition-colors">
+                <button 
+                  onClick={() => setDelayMs(prev => Math.max(250, prev - 250))}
+                  class="px-2 py-1 text-gray-500 hover:text-white hover:bg-gray-800 rounded-l transition-colors"
+                >
+                  -
+                </button>
+                <span class="w-12 text-center text-blue-500 font-mono">
+                  {delayMs()}ms
+                </span>
+                <button 
+                  onClick={() => setDelayMs(prev => prev + 250)}
+                  class="px-2 py-1 text-gray-500 hover:text-white hover:bg-gray-800 rounded-r transition-colors"
+                >
+                  +
+                </button>
+              </div>
+            </div>
 
-					{/* Cut Delay Control */}
-					<div class="flex items-center gap-2">
-						<label class="text-gray-500 font-bold uppercase tracking-wider">Cut(ms)</label>
-						<input
-							type="number"
-							value={delayMs()}
-							onInput={(e) => setDelayMs(Number(e.currentTarget.value))}
-							class="bg-gray-900 border border-gray-700 rounded w-16 px-2 py-1 text-center text-blue-400 focus:border-blue-500 outline-none"
-						/>
-					</div>
-
-					{/* Paragraph Threshold Control */}
-					<div class="flex items-center gap-2">
-						<label class="text-gray-500 font-bold uppercase tracking-wider">Gap(ms)</label>
-						<input
-							type="number"
-							value={paraMs()}
-							onInput={(e) => setParaMs(Number(e.currentTarget.value))}
-							class="bg-gray-900 border border-gray-700 rounded w-16 px-2 py-1 text-center text-purple-400 focus:border-purple-500 outline-none"
-						/>
+            {/* Paragraph Threshold Control */}
+            <div class="flex flex-col items-center gap-3 group">
+              <label class="text-purple-500 font-bold uppercase tracking-wider group-hover:text-gray-400 transition-colors">
+                Gap
+              </label>
+              <div class="flex items-center bg-gray-900 rounded border border-gray-800 group-hover:border-gray-600 transition-colors">
+                <button 
+                  onClick={() => setParaMs(prev => Math.max(1000, prev - 250))}
+                  class="px-2 py-1 text-gray-500 hover:text-white hover:bg-gray-800 rounded-l transition-colors"
+                >
+                  -
+                </button>
+                <span class="w-12 text-center text-purple-500 font-mono">
+                  {paraMs()}ms
+                </span>
+							<button
+								onClick={() => setParaMs(prev => prev + 250)}
+								class="px-2 py-1 text-gray-500 hover:text-white hover:bg-gray-800 rounded-r transition-colors"
+							>
+								+
+							</button>
+						</div>
 					</div>
 
 				</div>
-
 				{/* New Stream Button (Floating) */}
-				<div class="absolute -right-32 top-0">
+				<div class="absolute left-3/4 -translate-x-14 top-6">
 					<button
 						onClick={createNewStream}
-						class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded text-xs border border-gray-600 transition-all"
+						class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-1 py-1/2 rounded text-xs border border-gray-600 transition-all"
 					>
-						+ New Stream
+						+
 					</button>
 				</div>
 			</div>

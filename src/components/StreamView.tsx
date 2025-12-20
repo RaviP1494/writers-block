@@ -4,7 +4,7 @@ import type { StreamData } from '../types';
 interface StreamViewProps {
 	data: StreamData;
 	isActive: boolean;
-	gapThreshold: number; // We need this passed down to scale the bars!
+	gapThreshold: number;
 	onActivate: () => void;
 	onUpdateTitle: (newTitle: string) => void;
 	onClear: () => void;
@@ -32,18 +32,25 @@ export const StreamView = (props: StreamViewProps) => {
 		const isWall = mode === 'wall';
 		const isReversed = mode === 'reversed';
 
-		// 1. WALL VIEW (Pure Stream of Consciousness)
+		// 1. WALL VIEW (Strict Inline)
 		if (isWall) {
 			return (
-				<div class="text-[14pt] leading-relaxed break-words whitespace-pre-wrap">
+				<div class="text-[14pt] leading-relaxed break-words whitespace-normal text-left">
 					<For each={spurts}>
-						{(spurt) => (
-							<span
-								class="hover:text-white hover:bg-gray-800 cursor-pointer transition-colors duration-150 rounded px-1"
-								title={`${spurt.duration.toFixed(2)}s`}
-							>
-								{spurt.text}{" "}
-							</span>
+						{(spurt, i) => (
+							<>
+								{/* Paragraph Break: A literal empty block to force a new line */}
+								{/* Only if it's a paragraph start AND not the very first item */}
+								{(spurt.isParagraphStart && i() > 0) && (
+									<div class="h-4 w-full block"></div>
+								)}
+								<span
+									class="hover:text-white hover:bg-gray-400 cursor-pointer transition-colors duration-150 rounded px-1"
+									title={`${spurt.duration.toFixed(2)}s`}
+								>
+									{spurt.text}{" "}
+								</span>
+							</>
 						)}
 					</For>
 				</div>
@@ -51,88 +58,88 @@ export const StreamView = (props: StreamViewProps) => {
 		}
 
 		// 2. LIST VIEWS (Ordered & Reversed)
-		// We need to preprocess the list to calculate gaps between items
+		// We process list to render Spurt + The Gap that follows it visually
 		const listItems = isReversed ? [...spurts].reverse() : spurts;
 
 		return (
-			<div class="flex flex-col">
+			<div class="flex flex-col gap-1">
 				<For each={listItems}>
 					{(spurt, index) => {
-						// Calculate the Pause Gap
-						// In Ordered: Gap is time between THIS spurt end and NEXT spurt start
-						// In Reversed: Gap is time between THIS spurt end and PREVIOUS (chronological) spurt start
-
+						// --- GAP CALCULATION ---
 						let gapTime = 0;
-						let showParagraphDivider = false;
+						let isParaBreak = false; // Is the NEXT thing a paragraph break?
 
 						if (!isReversed) {
-							// ORDERED LOGIC
+							// ORDERED: Gap is between ME and NEXT
 							const nextSpurt = listItems[index() + 1];
 							if (nextSpurt) {
 								const myEnd = spurt.createdAt + (spurt.duration * 1000);
 								gapTime = (nextSpurt.createdAt - myEnd) / 1000;
-								if (nextSpurt.isParagraphStart) showParagraphDivider = true;
+								isParaBreak = nextSpurt.isParagraphStart;
 							}
 						} else {
-							// REVERSED LOGIC
-							// In reversed, the "Next" item in the list is actually the "Previous" chronological item
-							// But visually, we want to show the gap that occurred AFTER the current item displayed
-							const prevSpurt = listItems[index() - 1]; // The one above me visually (chronologically newer)
+							// REVERSED: Gap is between ME and the one VISUALLY BELOW me (chronologically older)
+							// Actually, in reverse view, we usually want to see the gap that led *to* this spurt.
+							// But consistent with "Timeline", let's show the gap *after* this thought.
 
-							// Actually, for reversed, it's cleaner to show the gap that led TO this spurt?
-							// Let's stick to the visual flow: Top to Bottom.
-							// Item 0 (Newest) -> Gap that happened before it -> Item 1
-
-							if (index() < listItems.length - 1) {
-								const nextVisualItem = listItems[index() + 1]; // Chronologically older
+							const nextVisualItem = listItems[index() + 1]; // This is chronologically OLDER
+							if (nextVisualItem) {
+								// Gap = (My Start) - (Older Item End)
 								const olderEnd = nextVisualItem.createdAt + (nextVisualItem.duration * 1000);
 								gapTime = (spurt.createdAt - olderEnd) / 1000;
-								if (spurt.isParagraphStart) showParagraphDivider = true;
+								isParaBreak = spurt.isParagraphStart; // If I am a paragraph start, there is a big break below me
 							}
 						}
 
-						// Cap gap at 0 for safety
 						gapTime = Math.max(0, gapTime);
 
-						// Calculate Bar Width % (Scale relative to Paragraph Threshold)
-						// If gap is 2.5s and Threshold is 5s, bar is 50% width
-						const barWidth = Math.min(100, (gapTime * 1000 / props.gapThreshold) * 100);
+						// Bar Width Logic
+						const barWidthPercent = Math.min(100, (gapTime * 1000 / props.gapThreshold) * 100);
 
 						return (
-							<div class="group relative">
-								{/* PARAGRAPH DIVIDER (The Line) */}
-								{showParagraphDivider && (
-									<div class="w-full h-px bg-gray-800 my-6"></div>
-								)}
+							<div class="flex flex-col">
 
-								{/* THE ROW: Content | Timeline */}
-								<div class="flex gap-4">
-
-									{/* LEFT: The Text (Flexible Width) */}
-									<div class="flex-1 text-[14pt] leading-relaxed break-words py-1 border-b border-gray-900/50">
+								{/* A. THE SPURT ROW */}
+								<div class="flex gap-4 items-baseline group">
+									{/* Left: Text */}
+									<div class="flex-1 text-[14pt] leading-relaxed break-words">
 										<span class="hover:text-white transition-colors">{spurt.text}</span>
-
-										{/* The "Small Separator" inside a paragraph (if NOT a paragraph break) */}
-										{!showParagraphDivider && gapTime > 0 && (
-											<div class="h-1 w-full"></div>
-										)}
 									</div>
-
-									{/* RIGHT: The Timeline (Fixed Width) */}
-									<div class="w-16 flex flex-col items-end justify-center text-[10px] font-mono text-gray-600 opacity-50 group-hover:opacity-100 transition-opacity">
-
-										{/* Spurt Duration */}
-										<div class="text-blue-500/80">{spurt.duration.toFixed(1)}s</div>
-
-										{/* The Gap Bar (Only if there is a next item) */}
-										{(gapTime > 0 && !showParagraphDivider) && (
-											<div class="w-full flex items-center justify-end gap-1 mt-1 h-3">
-												<span class="text-gray-700">{gapTime.toFixed(1)}s</span>
-												<div class="h-1 bg-gray-700 rounded-full" style={{ width: `${barWidth}%` }}></div>
-											</div>
-										)}
+									{/* Right: Duration */}
+									<div class="w-12 text-right text-[10px] font-mono text-green-400/60 group-hover:text-lime-300">
+										{spurt.duration.toFixed(1)}s
 									</div>
 								</div>
+
+								{/* B. THE GAP ROW (Only if there is a next item) */}
+								{index() < listItems.length - 1 && (
+									<div class="flex gap-4 items-center my-1 h-4">
+
+										{/* Left: The Visual Bar area */}
+										<div class="flex-1 flex items-center justify-center h-full relative">
+
+											{/* Scenario 1: Paragraph Break (The Horizontal Line) */}
+											{isParaBreak ? (
+												<div class="w-full h-px bg-gray-400"></div>
+											) : (
+												/* Scenario 2: Just a Pause (The Centered Growing Bar) */
+												/* Only show if gap > 0.1s to avoid clutter */
+												gapTime > 0.1 && (
+													<div
+														class="h-1 bg-gray-300 rounded-full transition-all"
+														style={{ width: `${barWidthPercent}%`, 'min-width': '2px' }}
+													></div>
+												)
+											)}
+										</div>
+
+										{/* Right: Gap Time */}
+										<div class="w-12 text-right text-[10px] font-mono text-gray-400">
+											{/* Only show gap time if it's significant (>0.5s) */}
+											{gapTime > 0.5 && `${gapTime.toFixed(1)}s`}
+										</div>
+									</div>
+								)}
 							</div>
 						);
 					}}

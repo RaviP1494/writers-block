@@ -50,7 +50,7 @@ export const Block = (props: BlockProps) => {
 	return (
 		<div class="w-full h-full flex flex-col">
 			<div class="text-xs text-gray-500 mb-2 font-bold uppercase tracking-widest flex justify-between">
-				<span>Active Thought</span>
+				<span>Writer's Block</span>
 				<span class={text().length > 0 ? "text-green-500 animate-pulse" : "text-gray-700"}>
 					{text().length > 0 ? "RECORDING" : "IDLE"}
 				</span>
