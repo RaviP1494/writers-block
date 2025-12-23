@@ -1,3 +1,5 @@
+// types.ts
+
 export interface Spurt {
   id: string;
   text: string;
@@ -13,6 +15,7 @@ export interface StreamData {
   title: string;
   spurts: Spurt[];
   viewMode: ViewMode;
+  minimized?: boolean; // <--- NEW: Tracks if the stream is in the taskbar
 }
 
 export interface BlockProps {
